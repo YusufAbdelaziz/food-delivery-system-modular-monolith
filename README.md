@@ -52,7 +52,7 @@ Head to [Features](./FEATURES.md) to see the full features of the system.
 ## 🏁 Getting Started
 
 1. Clone the repository
-2. Navigate to the project directory via `cd ./food-delivery-system`
+2. Navigate to the project directory via `cd ./foodDeliverySystem`
 3. Build the project `\.mvnw.cmd clean install`
 4. Run the application `.\mvnw.cmd spring-boot:run`
 5. Access the application at `http://localhost:8080`

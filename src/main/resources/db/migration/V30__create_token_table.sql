@@ -1,4 +1,4 @@
-CREATE TABLE Token (
+CREATE TABLE token (
   id bigint unsigned AUTO_INCREMENT PRIMARY KEY,
   token VARCHAR(1024) NOT NULL,
   token_hash CHAR(64) GENERATED ALWAYS AS (SHA2(token, 256)) STORED,
@@ -23,7 +23,7 @@ CREATE TABLE Token (
 );
 
 -- Create index on user_id for faster joins
-CREATE INDEX idx_token_user ON Token(user_id);
+CREATE INDEX idx_token_user ON token(user_id);
 
 -- Create index on courier_id for faster joins
-CREATE INDEX idx_token_courier ON Token(courier_id);
+CREATE INDEX idx_token_courier ON token(courier_id);
