@@ -15,12 +15,14 @@ import lombok.Data;
 public class OrderDTO {
   private Long id;
 
-  @NotNull private Long customerId;
+  @NotNull
+  private Long customerId;
 
   private Long promotionId;
   private String promotionCode;
 
-  @NotNull private Set<OrderRestaurantDTO> restaurants = new HashSet<>();
+  @NotNull
+  private Set<OrderRestaurantDTO> restaurants = new HashSet<>();
 
   private Long courierId;
 
@@ -35,19 +37,11 @@ public class OrderDTO {
 
   private BigDecimal discountedOrderTotal;
 
-  @NullableRating private Byte courierRating;
+  @NullableRating
+  private Byte courierRating;
 
   @Size(max = 2000, message = "Courier feedback should be at least 2000 characters in length")
   private String courierFeedback;
 
   private OrderStatus status;
 }
-
-
-
-
-
-
-
-
-

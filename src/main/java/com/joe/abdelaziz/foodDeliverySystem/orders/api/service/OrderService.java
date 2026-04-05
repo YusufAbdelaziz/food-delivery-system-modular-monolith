@@ -2,13 +2,14 @@ package com.joe.abdelaziz.foodDeliverySystem.orders.api.service;
 
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.command.OrderRatingSubmission;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderDTO;
+import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderPlacementDto;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.enums.OrderStatus;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.view.OrderRatingInfo;
 import jakarta.persistence.Tuple;
 import java.util.List;
 
 public interface OrderService {
-  OrderDTO insertOrder(OrderDTO dto);
+  OrderDTO placeOrder(OrderPlacementDto dto);
 
   OrderDTO calculateReceipt(OrderDTO order);
 

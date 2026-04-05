@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.joe.abdelaziz.foodDeliverySystem.common.exception.BusinessLogicException;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.command.OrderRatingSubmission;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderDTO;
+import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderPlacementDto;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.enums.OrderStatus;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.service.OrderService;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.view.OrderRatingInfo;
@@ -74,8 +75,8 @@ public class OrderController {
   @PreAuthorize("hasRole('USER')")
   @PostMapping("")
   public ResponseEntity<OrderDTO> placeOrder(
-      @RequestBody @Parameter(description = "Order data", required = true) OrderDTO order) {
-    return ResponseEntity.ok(orderService.insertOrder(order));
+      @RequestBody @Parameter(description = "Order placement data", required = true) OrderPlacementDto order) {
+    return ResponseEntity.ok(orderService.placeOrder(order));
   }
 
   @Operation(summary = "Get order by ID", description = "Fetches order details by ID")

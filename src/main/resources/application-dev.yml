@@ -1,0 +1,48 @@
+# Keys like URL, DB name, and DB credentials should be provided by the environment.
+# They are hardcoded here for practice purposes.
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/food-delivery-dev?createDatabaseIfNotExist=true
+    username: joe
+    password: "vv44sRUF#NCtu7zKcfR5uYdps6*"
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+  flyway:
+    group: true
+
+logging:
+  level:
+    org:
+      hibernate: info
+      hibernate.sql: debug
+      springframework:
+        web: debug
+        security: DEBUG
+    com:
+      joe:
+        abelaziz: debug
+
+application:
+  security:
+    jwt:
+      secret-key: f553403da766f00ec6ecebc4c4a547789a1a7aafd083403e2ff7f8a8fb168c4f
+      expiration: 86400000
+      refresh-token:
+        expiration: 604800000
+
+springdoc:
+  api-docs:
+    path: /api-docs/v1
+
+scheduler:
+  update-restaurant-ratings:
+    rate: 86400000
+  update-courier-ratings:
+    rate: 3600000

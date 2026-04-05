@@ -31,69 +31,40 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Authentication", description = "API for user authentication and registration")
 public class AuthenticationController {
 
-  private final AuthenticationService service;
+    private final AuthenticationService service;
 
-  @Operation(summary = "Register a new user", description = "Registers a new user in the system")
-  @ApiResponses(
-      value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "User registered successfully",
-            content = @Content(schema = @Schema(implementation = AuthenticationResponse.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid input data")
-      })
-  @PostMapping("/register")
-  public ResponseEntity<AuthenticationResponse> register(
-      @RequestBody @Valid @Parameter(description = "User registration details", required = true)
-          RegisterRequest request) {
-    return ResponseEntity.ok(service.register(request));
-  }
+    @Operation(summary = "Register a new user", description = "Registers a new user in the system")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User registered successfully", content = @Content(schema = @Schema(implementation = AuthenticationResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid input data")
+    })
+    @PostMapping("/register")
+    public ResponseEntity<AuthenticationResponse> register(
+            @RequestBody @Valid @Parameter(description = "User registration details", required = true) RegisterRequest request) {
+        return ResponseEntity.ok(service.register(request));
+    }
 
-  @Operation(
-      summary = "Authenticate a user",
-      description = "Authenticates a user and returns an authentication token")
-  @ApiResponses(
-      value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "User authenticated successfully",
-            content = @Content(schema = @Schema(implementation = AuthenticationResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid credentials")
-      })
-  @PostMapping("/authenticate")
-  public ResponseEntity<AuthenticationResponse> authenticate(
-      @RequestBody @Parameter(description = "User authentication details", required = true)
-          AuthenticationRequest request) {
-    return ResponseEntity.ok(service.authenticate(request));
-  }
+    @Operation(summary = "Authenticate a user", description = "Authenticates a user and returns an authentication token")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User authenticated successfully", content = @Content(schema = @Schema(implementation = AuthenticationResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid credentials")
+    })
+    @PostMapping("/authenticate")
+    public ResponseEntity<AuthenticationResponse> authenticate(
+            @RequestBody @Parameter(description = "User authentication details", required = true) AuthenticationRequest request) {
+        return ResponseEntity.ok(service.authenticate(request));
+    }
 
-  @Operation(
-      summary = "Refresh authentication token",
-      description = "Refreshes the authentication token")
-  @ApiResponses(
-      value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "Token refreshed successfully",
-            content = @Content(schema = @Schema(implementation = AuthenticationResponse.class))),
-        @ApiResponse(responseCode = "400", description = "Invalid refresh token")
-      })
-  @PostMapping("/refresh-token")
-  public ResponseEntity<AuthenticationResponse> refreshToken(
-      @Parameter(description = "HTTP request containing the refresh token", required = true)
-          HttpServletRequest request,
-      @Parameter(description = "HTTP response to handle the token refresh", required = true)
-          HttpServletResponse response)
-      throws IOException {
-    return ResponseEntity.ok(service.refreshToken(request));
-  }
+    @Operation(summary = "Refresh authentication token", description = "Refreshes the authentication token")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Token refreshed successfully", content = @Content(schema = @Schema(implementation = AuthenticationResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid refresh token")
+    })
+    @PostMapping("/refresh-token")
+    public ResponseEntity<AuthenticationResponse> refreshToken(
+            @Parameter(description = "HTTP request containing the refresh token", required = true) HttpServletRequest request,
+            @Parameter(description = "HTTP response to handle the token refresh", required = true) HttpServletResponse response)
+            throws IOException {
+        return ResponseEntity.ok(service.refreshToken(request));
+    }
 }
-
-
-
-
-
-
-
-
-

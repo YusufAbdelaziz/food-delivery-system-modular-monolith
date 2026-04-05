@@ -3,6 +3,7 @@ package com.joe.abdelaziz.foodDeliverySystem.orders.internal.service;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -13,11 +14,17 @@ import com.joe.abdelaziz.foodDeliverySystem.common.exception.BusinessLogicExcept
 import com.joe.abdelaziz.foodDeliverySystem.common.exception.RecordNotFoundException;
 import com.joe.abdelaziz.foodDeliverySystem.customer.api.dto.CustomerDTO;
 import com.joe.abdelaziz.foodDeliverySystem.customer.api.service.CustomerService;
+import com.joe.abdelaziz.foodDeliverySystem.notification.api.command.PublishNotificationCommand;
+import com.joe.abdelaziz.foodDeliverySystem.notification.api.command.PublishNotificationRecipient;
+import com.joe.abdelaziz.foodDeliverySystem.notification.api.enums.ChannelType;
+import com.joe.abdelaziz.foodDeliverySystem.notification.api.service.NotificationPublisherService;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.command.OrderRatingSubmission;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.command.OrderRestaurantRatingSubmission;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderDTO;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderItemDTO;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderOptionDTO;
+import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderPlacementDto;
+import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderPlacementRestaurantDto;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderRestaurantDTO;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderRestaurantDeliveryFeeDTO;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderSpecDTO;
@@ -27,7 +34,11 @@ import com.joe.abdelaziz.foodDeliverySystem.orders.api.service.OrderPromotionSer
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.service.OrderService;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.view.OrderRatingInfo;
 import com.joe.abdelaziz.foodDeliverySystem.orders.internal.entity.Order;
+import com.joe.abdelaziz.foodDeliverySystem.orders.internal.entity.OrderItem;
+import com.joe.abdelaziz.foodDeliverySystem.orders.internal.entity.OrderOption;
 import com.joe.abdelaziz.foodDeliverySystem.orders.internal.entity.OrderRestaurant;
+import com.joe.abdelaziz.foodDeliverySystem.orders.internal.entity.OrderSpec;
+import com.joe.abdelaziz.foodDeliverySystem.orders.internal.mapper.OrderItemMapper;
 import com.joe.abdelaziz.foodDeliverySystem.orders.internal.mapper.OrderMapper;
 import com.joe.abdelaziz.foodDeliverySystem.orders.internal.repository.OrderRepository;
 
@@ -47,9 +58,11 @@ public class OrderServiceImpl implements OrderService {
   private final RestaurantService restaurantService;
   private final OrderPromotionService orderPromotionService;
   private final OrderMapper orderMapper;
+  private final OrderItemMapper orderItemMapper;
+  private final NotificationPublisherService notificationPublisherService;
 
-  public OrderDTO insertOrder(OrderDTO dto) {
-    Order order = orderMapper.toOrder(dto);
+  public OrderDTO placeOrder(OrderPlacementDto dto) {
+    Order order = new Order();
     if (dto.getCustomerId() == null) {
       throw new BusinessLogicException("A customer should be provided when placing an order");
     }
@@ -59,10 +72,18 @@ public class OrderServiceImpl implements OrderService {
     }
     CustomerDTO customer = customerService.findDtoById(dto.getCustomerId());
     order.setCustomerId(customer.getId());
+    order.setRestaurants(toOrderRestaurants(dto.getRestaurants(), order));
+    order.setOrderTotal(dto.getOrderTotal() != null ? dto.getOrderTotal() : BigDecimal.ZERO);
+    order.setTotalDeliveryFees(dto.getTotalDeliveryFees() != null ? dto.getTotalDeliveryFees() : BigDecimal.ZERO);
+    order.setDiscountedOrderTotal(dto.getDiscountedOrderTotal());
+    order.setDiscountedTotalDeliveryFees(dto.getDiscountedTotalDeliveryFees());
+
     if (dto.getPromotionId() != null) {
       orderPromotionService.validatePromotionForOrder(dto.getPromotionId());
       order.setPromotionId(dto.getPromotionId());
     }
+
+    hydrateMissingDeliveryFeeData(order, customer);
 
     // Estimated delivery date should be recalculated because the user may
     // add new address, review the order, etc so that would consume a couple of
@@ -80,7 +101,94 @@ public class OrderServiceImpl implements OrderService {
       orderPromotionService.registerPromotionUsage(order.getPromotionId(), customer.getId());
     }
 
-    return orderMapper.toOrderDTO(newOrder);
+    OrderDTO newOrderDTO = orderMapper.toOrderDTO(newOrder);
+    notificationPublisherService.publish(generateNotificationCommand(newOrderDTO, customer));
+    return newOrderDTO;
+  }
+
+  private PublishNotificationCommand generateNotificationCommand(OrderDTO order, CustomerDTO customer) {
+
+    return PublishNotificationCommand.builder()
+        .userId(customer.getId())
+        .channelType(ChannelType.EMAIL)
+        .recipientInfo(
+            PublishNotificationRecipient.builder().email(customer.getEmail()).phone(customer.getPhoneNumber()).build())
+        .message(String.format("Your order with id %d has been placed successfully!", order.getId()))
+        .order(order)
+        .build();
+  }
+
+  private Set<OrderRestaurant> toOrderRestaurants(
+      Set<OrderPlacementRestaurantDto> placementRestaurants,
+      Order order) {
+    Set<OrderRestaurant> orderRestaurants = new HashSet<>();
+
+    for (OrderPlacementRestaurantDto placementRestaurant : placementRestaurants) {
+      if (placementRestaurant == null || placementRestaurant.getRestaurant() == null) {
+        throw new BusinessLogicException("Each restaurant entry must contain restaurant details");
+      }
+      if (placementRestaurant.getRestaurant().getId() == null) {
+        throw new BusinessLogicException("Restaurant id is required when placing an order");
+      }
+
+      OrderRestaurant orderRestaurant = new OrderRestaurant();
+      orderRestaurant.setOrder(order);
+      orderRestaurant.setRestaurantId(placementRestaurant.getRestaurant().getId());
+      orderRestaurant.setItems(toOrderItems(placementRestaurant.getItems()));
+      orderRestaurant.setTotalRestaurantReceipt(calculateRestaurantReceiptWithoutDeliveryFee(orderRestaurant));
+
+      orderRestaurants.add(orderRestaurant);
+    }
+
+    return orderRestaurants;
+  }
+
+  private Set<OrderItem> toOrderItems(Set<OrderItemDTO> itemDtos) {
+    Set<OrderItem> items = new HashSet<>();
+    if (itemDtos == null || itemDtos.isEmpty()) {
+      return items;
+    }
+
+    for (OrderItemDTO itemDto : itemDtos) {
+      if (itemDto == null) {
+        continue;
+      }
+      items.add(orderItemMapper.toOrderItem(itemDto));
+    }
+
+    return items;
+  }
+
+  private BigDecimal calculateRestaurantReceiptWithoutDeliveryFee(OrderRestaurant orderRestaurant) {
+    BigDecimal totalRestaurantReceipt = BigDecimal.ZERO;
+    if (orderRestaurant.getItems() == null || orderRestaurant.getItems().isEmpty()) {
+      return totalRestaurantReceipt;
+    }
+
+    for (OrderItem orderItem : orderRestaurant.getItems()) {
+      if (orderItem == null || orderItem.getPrice() == null) {
+        continue;
+      }
+
+      BigDecimal itemPrice = orderItem.getPrice();
+      if (orderItem.getSpecs() != null) {
+        for (OrderSpec spec : orderItem.getSpecs()) {
+          if (spec == null || spec.getOptions() == null) {
+            continue;
+          }
+          for (OrderOption option : spec.getOptions()) {
+            if (option != null && option.getPrice() != null) {
+              itemPrice = itemPrice.add(option.getPrice());
+            }
+          }
+        }
+      }
+
+      itemPrice = itemPrice.multiply(BigDecimal.valueOf(orderItem.getQuantity()));
+      totalRestaurantReceipt = totalRestaurantReceipt.add(itemPrice);
+    }
+
+    return totalRestaurantReceipt;
   }
 
   public OrderDTO calculateReceipt(OrderDTO order) {
@@ -118,12 +226,49 @@ public class OrderServiceImpl implements OrderService {
 
   private Duration getEstimatedDuration(Object restaurant) {
     if (restaurant instanceof OrderRestaurantDTO) {
-      return ((OrderRestaurantDTO) restaurant).getEstimatedDeliveryDuration();
+      Duration estimatedDuration = ((OrderRestaurantDTO) restaurant).getEstimatedDeliveryDuration();
+      if (estimatedDuration == null) {
+        throw new BusinessLogicException("Estimated delivery duration is required for order restaurant");
+      }
+      return estimatedDuration;
     } else if (restaurant instanceof OrderRestaurant) {
-      return ((OrderRestaurant) restaurant).getEstimatedDeliveryDuration();
+      OrderRestaurant orderRestaurant = (OrderRestaurant) restaurant;
+      if (orderRestaurant.getEstimatedDeliveryDuration() == null) {
+        throw new BusinessLogicException(
+            String.format(
+                "Estimated delivery duration is required for restaurant id %s",
+                orderRestaurant.getRestaurantId()));
+      }
+      return orderRestaurant.getEstimatedDeliveryDuration();
     } else {
       throw new IllegalArgumentException("Unsupported restaurant type");
     }
+  }
+
+  private void hydrateMissingDeliveryFeeData(Order order, CustomerDTO customer) {
+    BigDecimal totalDeliveryFees = BigDecimal.ZERO;
+
+    for (OrderRestaurant orderRestaurant : order.getRestaurants()) {
+      if (orderRestaurant.getRestaurantId() == null) {
+        throw new BusinessLogicException("Restaurant id is required in each order restaurant");
+      }
+
+      OrderRestaurantDTO lookupDto = new OrderRestaurantDTO();
+      lookupDto.setRestaurantId(orderRestaurant.getRestaurantId());
+
+      OrderRestaurantDeliveryFeeDTO deliveryFee = orderDeliveryFeeService
+          .calculateDeliveryFeeForRestaurant(lookupDto, customer);
+
+      orderRestaurant.setDeliveryFeeCurrentPrice(deliveryFee.getCurrentPrice());
+      orderRestaurant.setDeliveryFeeDiscountedPrice(deliveryFee.getDiscountedPrice());
+      orderRestaurant.setEstimatedDeliveryDuration(deliveryFee.getEstimatedDuration());
+
+      if (deliveryFee.getCurrentPrice() != null) {
+        totalDeliveryFees = totalDeliveryFees.add(deliveryFee.getCurrentPrice());
+      }
+    }
+
+    order.setTotalDeliveryFees(totalDeliveryFees);
   }
 
   private BigDecimal calculateRestaurantReceiptWithoutDeliveryFee(

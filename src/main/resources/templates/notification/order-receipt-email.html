@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Order Receipt</title>
+</head>
+<body style="font-family: Arial, sans-serif; color: #222; line-height: 1.5;">
+  <h2 style="margin-bottom: 0;">Order Receipt</h2>
+  <p style="margin-top: 6px;">Notification ID: <span th:text="${notificationId}">0</span></p>
+
+  <p th:text="${message}">Your order receipt is ready.</p>
+
+  <div th:if="${orderId != null}">
+    <p><strong>Order ID:</strong> <span th:text="${orderId}">0</span></p>
+    <p><strong>Status:</strong> <span th:text="${orderStatus}">PENDING</span></p>
+    <p><strong>Estimated Delivery:</strong> <span th:text="${estimatedDeliveryDate}">-</span></p>
+    <p><strong>Order Total:</strong> <span th:text="${orderTotal}">0.00</span></p>
+    <p><strong>Delivery Fees:</strong> <span th:text="${totalDeliveryFees}">0.00</span></p>
+
+    <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 12px;">
+      <thead>
+        <tr style="background: #f5f5f5;">
+          <th align="left">Item</th>
+          <th align="left">Quantity</th>
+          <th align="left">Base Price</th>
+          <th align="left">Options Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="item : ${lineItems}">
+          <td th:text="${item.name}">Item name</td>
+          <td th:text="${item.quantity}">1</td>
+          <td th:text="${item.basePrice}">0.00</td>
+          <td th:text="${item.optionsTotal}">0.00</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
