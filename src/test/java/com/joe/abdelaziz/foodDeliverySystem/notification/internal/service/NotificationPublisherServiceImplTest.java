@@ -25,6 +25,7 @@ import com.joe.abdelaziz.foodDeliverySystem.notification.api.command.PublishNoti
 import com.joe.abdelaziz.foodDeliverySystem.notification.api.enums.ChannelType;
 import com.joe.abdelaziz.foodDeliverySystem.notification.api.enums.NotificationStatus;
 import com.joe.abdelaziz.foodDeliverySystem.notification.api.event.NotificationCreatedEvent;
+import com.joe.abdelaziz.foodDeliverySystem.notification.api.model.NotificationOrderSnapshot;
 import com.joe.abdelaziz.foodDeliverySystem.notification.internal.entity.Notification;
 import com.joe.abdelaziz.foodDeliverySystem.notification.internal.entity.NotificationChannel;
 import com.joe.abdelaziz.foodDeliverySystem.notification.internal.factory.NotificationGenerationStrategyFactory;
@@ -32,7 +33,6 @@ import com.joe.abdelaziz.foodDeliverySystem.notification.internal.model.Recipien
 import com.joe.abdelaziz.foodDeliverySystem.notification.internal.repository.NotificationChannelRepository;
 import com.joe.abdelaziz.foodDeliverySystem.notification.internal.repository.NotificationRepository;
 import com.joe.abdelaziz.foodDeliverySystem.notification.internal.strategy.NotificationGenerationStrategy;
-import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderDTO;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationPublisherServiceImplTest {
@@ -74,8 +74,7 @@ class NotificationPublisherServiceImplTest {
   @Test
   void shouldPublishAndPersistPendingNotification() {
     RecipientInfo recipientInfo = RecipientInfo.builder().email("user@example.com").build();
-    OrderDTO order = new OrderDTO();
-    order.setId(555L);
+    NotificationOrderSnapshot order = NotificationOrderSnapshot.builder().id(555L).build();
     PublishNotificationCommand command = PublishNotificationCommand.builder()
         .userId(7L)
         .channelType(ChannelType.EMAIL)

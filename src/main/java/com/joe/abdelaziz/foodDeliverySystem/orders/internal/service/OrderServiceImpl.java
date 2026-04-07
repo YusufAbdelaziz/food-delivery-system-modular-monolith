@@ -14,10 +14,6 @@ import com.joe.abdelaziz.foodDeliverySystem.common.exception.BusinessLogicExcept
 import com.joe.abdelaziz.foodDeliverySystem.common.exception.RecordNotFoundException;
 import com.joe.abdelaziz.foodDeliverySystem.customer.api.dto.CustomerDTO;
 import com.joe.abdelaziz.foodDeliverySystem.customer.api.service.CustomerService;
-import com.joe.abdelaziz.foodDeliverySystem.notification.api.command.PublishNotificationCommand;
-import com.joe.abdelaziz.foodDeliverySystem.notification.api.command.PublishNotificationRecipient;
-import com.joe.abdelaziz.foodDeliverySystem.notification.api.enums.ChannelType;
-import com.joe.abdelaziz.foodDeliverySystem.notification.api.service.NotificationPublisherService;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.command.OrderRatingSubmission;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.command.OrderRestaurantRatingSubmission;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderDTO;
@@ -28,8 +24,10 @@ import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderPlacementRestaur
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderRestaurantDTO;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderRestaurantDeliveryFeeDTO;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderSpecDTO;
+import com.joe.abdelaziz.foodDeliverySystem.orders.api.event.OrderPlacedEvent;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.enums.OrderStatus;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.service.OrderDeliveryFeeService;
+import com.joe.abdelaziz.foodDeliverySystem.orders.api.service.OrderEventPublisher;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.service.OrderPromotionService;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.service.OrderService;
 import com.joe.abdelaziz.foodDeliverySystem.orders.api.view.OrderRatingInfo;
@@ -44,7 +42,7 @@ import com.joe.abdelaziz.foodDeliverySystem.orders.internal.repository.OrderRepo
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.Tuple;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -59,8 +57,9 @@ public class OrderServiceImpl implements OrderService {
   private final OrderPromotionService orderPromotionService;
   private final OrderMapper orderMapper;
   private final OrderItemMapper orderItemMapper;
-  private final NotificationPublisherService notificationPublisherService;
+  private final OrderEventPublisher orderEventPublisher;
 
+  @Transactional
   public OrderDTO placeOrder(OrderPlacementDto dto) {
     Order order = new Order();
     if (dto.getCustomerId() == null) {
@@ -102,20 +101,12 @@ public class OrderServiceImpl implements OrderService {
     }
 
     OrderDTO newOrderDTO = orderMapper.toOrderDTO(newOrder);
-    notificationPublisherService.publish(generateNotificationCommand(newOrderDTO, customer));
+    orderEventPublisher.publishOrderPlaced(new OrderPlacedEvent(
+        customer.getId(),
+        customer.getEmail(),
+        customer.getPhoneNumber(),
+        newOrderDTO));
     return newOrderDTO;
-  }
-
-  private PublishNotificationCommand generateNotificationCommand(OrderDTO order, CustomerDTO customer) {
-
-    return PublishNotificationCommand.builder()
-        .userId(customer.getId())
-        .channelType(ChannelType.EMAIL)
-        .recipientInfo(
-            PublishNotificationRecipient.builder().email(customer.getEmail()).phone(customer.getPhoneNumber()).build())
-        .message(String.format("Your order with id %d has been placed successfully!", order.getId()))
-        .order(order)
-        .build();
   }
 
   private Set<OrderRestaurant> toOrderRestaurants(

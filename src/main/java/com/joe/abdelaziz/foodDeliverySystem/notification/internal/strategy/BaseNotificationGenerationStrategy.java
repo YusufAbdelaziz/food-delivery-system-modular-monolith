@@ -2,14 +2,14 @@ package com.joe.abdelaziz.foodDeliverySystem.notification.internal.strategy;
 
 import com.joe.abdelaziz.foodDeliverySystem.common.exception.BusinessLogicException;
 import com.joe.abdelaziz.foodDeliverySystem.notification.api.enums.ChannelType;
+import com.joe.abdelaziz.foodDeliverySystem.notification.api.model.NotificationOrderSnapshot;
 import com.joe.abdelaziz.foodDeliverySystem.notification.internal.entity.Notification;
 import com.joe.abdelaziz.foodDeliverySystem.notification.internal.model.RecipientInfo;
-import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderDTO;
 
 abstract class BaseNotificationGenerationStrategy implements NotificationGenerationStrategy {
 
   @Override
-  public abstract void execute(Notification notification, OrderDTO order);
+  public abstract void execute(Notification notification, NotificationOrderSnapshot order);
 
   protected RecipientInfo requireEmail(RecipientInfo recipientInfo, ChannelType channelType) {
     if (recipientInfo == null) {

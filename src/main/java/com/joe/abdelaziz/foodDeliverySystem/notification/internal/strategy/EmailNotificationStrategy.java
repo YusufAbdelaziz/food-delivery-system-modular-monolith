@@ -10,9 +10,9 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import com.joe.abdelaziz.foodDeliverySystem.common.exception.BusinessLogicException;
 import com.joe.abdelaziz.foodDeliverySystem.notification.api.enums.ChannelType;
+import com.joe.abdelaziz.foodDeliverySystem.notification.api.model.NotificationOrderSnapshot;
 import com.joe.abdelaziz.foodDeliverySystem.notification.internal.entity.Notification;
 import com.joe.abdelaziz.foodDeliverySystem.notification.internal.model.RecipientInfo;
-import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderDTO;
 
 import jakarta.mail.MessagingException;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +47,7 @@ public class EmailNotificationStrategy extends BaseNotificationGenerationStrateg
   }
 
   @Override
-  public void execute(Notification notification, OrderDTO order) {
+  public void execute(Notification notification, NotificationOrderSnapshot order) {
     Objects.requireNonNull(notification, "notification must not be null");
 
     RecipientInfo recipientInfo = requireEmail(notification.getRecipientInfo(), ChannelType.EMAIL);
@@ -75,9 +75,9 @@ public class EmailNotificationStrategy extends BaseNotificationGenerationStrateg
     }
   }
 
-  private @NonNull String resolveSubject(OrderDTO order) {
-    if (order != null && order.getId() != null) {
-      return String.format("Order Receipt #%d", order.getId());
+  private @NonNull String resolveSubject(NotificationOrderSnapshot order) {
+    if (order != null && order.id() != null) {
+      return String.format("Order Receipt #%d", order.id());
     }
     return "Order Receipt";
   }

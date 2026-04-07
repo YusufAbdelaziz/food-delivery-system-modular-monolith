@@ -15,6 +15,8 @@ class ModularityTests {
     // or if there are cyclic dependencies
     // modules.forEach(System.out::println);
     modules.verify();
+    System.out.println(modules.detectViolations());
+
   }
 
   @Test

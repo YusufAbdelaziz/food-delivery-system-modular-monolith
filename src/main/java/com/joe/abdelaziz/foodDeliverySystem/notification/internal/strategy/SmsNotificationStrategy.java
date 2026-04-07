@@ -3,9 +3,9 @@ package com.joe.abdelaziz.foodDeliverySystem.notification.internal.strategy;
 import org.springframework.stereotype.Component;
 
 import com.joe.abdelaziz.foodDeliverySystem.notification.api.enums.ChannelType;
+import com.joe.abdelaziz.foodDeliverySystem.notification.api.model.NotificationOrderSnapshot;
 import com.joe.abdelaziz.foodDeliverySystem.notification.internal.entity.Notification;
 import com.joe.abdelaziz.foodDeliverySystem.notification.internal.model.RecipientInfo;
-import com.joe.abdelaziz.foodDeliverySystem.orders.api.dto.OrderDTO;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,13 +24,13 @@ public class SmsNotificationStrategy extends BaseNotificationGenerationStrategy 
   }
 
   @Override
-  public void execute(Notification notification, OrderDTO order) {
+  public void execute(Notification notification, NotificationOrderSnapshot order) {
     RecipientInfo recipientInfo = requirePhone(notification.getRecipientInfo(), ChannelType.SMS);
     log.info(
         "Sending SMS notification id={} to={} orderId={} message={}",
         notification.getId(),
         recipientInfo.getPhone(),
-        order != null ? order.getId() : null,
+        order != null ? order.id() : null,
         notification.getMessage());
   }
 }
