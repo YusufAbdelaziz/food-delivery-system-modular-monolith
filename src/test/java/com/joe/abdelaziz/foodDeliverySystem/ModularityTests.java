@@ -24,6 +24,7 @@ class ModularityTests {
     ApplicationModules modules = ApplicationModules.of(FoodDeliverySystemApplication.class);
     new Documenter(modules)
         .writeDocumentation()
-        .writeIndividualModulesAsPlantUml();
+        .writeIndividualModulesAsPlantUml()
+        .writeModuleCanvases();
   }
 }
